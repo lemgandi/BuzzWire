@@ -10,9 +10,9 @@ typedef enum State {
 
 typedef enum GameType {
    NullGame,
-   Free,
    Challenge,
-   Tournament
+   Tournament,
+   Free
 };
 
 typedef enum Button {

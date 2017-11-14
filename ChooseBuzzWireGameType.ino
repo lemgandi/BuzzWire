@@ -173,8 +173,9 @@ GameType chooseGameType(void)
 {
    Button buttonPressed=NullButton;
    GameType theGameType;
+
+
    Lcd.clear();
-   //         012345678901234567890123456789012
    Lcd.print("Choose Game Type");
    Lcd.setCursor(0,1);
    Lcd.print("(up/down/select)");

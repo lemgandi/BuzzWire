@@ -7,6 +7,11 @@
  * Copyright (c) Charles Shapiro, November 2017
  */
 #include <EnableInterrupt.h>
+#include <LiquidCrystal.h>
+
+#define CHS_DEBUG
+#include "BuzzWireTypes.h"
+#include "Prototypes.h"
 
 #define STARTPIN 16
 #define FAILPIN 17
@@ -17,30 +22,44 @@ int StartedFlag=0;
 int FailFlag=0;
 int SuccessFlag=0;
 
-typedef enum State {
-  Started,
-  Failed,
-  Succeeded,
-  Notified
-};
+GameType CurrentGameType=NullGame;
+State CurrentState=Notified;
+LiquidCrystal Lcd(8,9,4,5,6,7);
 
+int ElapseTimer = 0;
+int TimerInitSec = -1;
+
+/*
+ * ISR for STARTPIN low
+ */
 void Start()
 {
    StartedFlag = 1;
 }
+/*
+ * ISR for FAILPIN low
+ */
 void Fail()
 {
    FailFlag = 1;
 }
+/*
+ * ISR for SUCCESSPIN low
+ */
 void Success()
-{
-   
+{   
    SuccessFlag = 1;
 }
+/*
+ * Main Line Setup
+ */
 void setup()
 {
+#ifdef CHS_DEBUG
    Serial.begin(9600);
-
+#endif
+   Lcd.begin(16,2);
+   
    pinMode(STARTPIN,INPUT_PULLUP);
    pinMode(FAILPIN,INPUT_PULLUP);
    pinMode(SUCCESSPIN,INPUT_PULLUP);
@@ -48,24 +67,17 @@ void setup()
    enableInterrupt(STARTPIN,Start,FALLING);
    enableInterrupt(FAILPIN,Fail,FALLING);
    enableInterrupt(SUCCESSPIN,Success,FALLING);
+   CurrentGameType=chooseGameType();
+   #ifdef CHS_DEBUG
+   Serial.print("CurrentGameType: ");
+   Serial.print(CurrentGameType);
+   Serial.print(" TimerInitSec: ");
+   Serial.println(TimerInitSec);
+#endif
+
 }
 
 void loop()
 {
-  Serial.print("Nothing ");
-  delay(500);
-  
-  if(StartedFlag > 0) {
-     Serial.println("Started !!!");
-     StartedFlag = 0;
-  }
-  if(FailFlag > 0) {
-     Serial.println("Failed !!!");
-     FailFlag = 0;
-  }
-  if(SuccessFlag > 0) {
-     Serial.println("Succeeded !!!");
-     SuccessFlag = 0;
-  }
 }
  

@@ -3,6 +3,8 @@
  * Called from setup().
  * Copyright (c) Charles Shapiro November 2017
  */
+#include <LiquidCrystal.h>
+
 #include "BuzzWireTypes.h"
 #include "Prototypes.h"
 

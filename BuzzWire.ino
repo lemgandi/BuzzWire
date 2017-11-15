@@ -8,6 +8,7 @@
  */
 #include <EnableInterrupt.h>
 #include <LiquidCrystal.h>
+#include <limits.h>  // UINT_MAX signal value for timers
 
 #define CHS_DEBUG
 #include "BuzzWireTypes.h"
@@ -17,15 +18,42 @@
 #define FAILPIN 17
 #define SUCCESSPIN 18
 
-
+// Type of game, set by ChooseBuzzWireGame.ino . Never "NullGame" after setup.
 GameType CurrentGameType=NullGame;
+
+
+// Our State Machine s State
 State CurrentState=Notified;
+
+
 LiquidCrystal Lcd(8,9,4,5,6,7);
 
-int StartTime = 0;
-int ElapseTime = 0;
-int TimerInitSec = -1;
-int ChallengeTime =-1;
+
+// Millis at start of game
+unsigned long StartTime = 0;
+// Millis since start of game
+unsigned long ElapseTime = 0;
+// Seconds next game should last (always the same for Challenge,
+// time of last success for Tournament, -1 for Free)
+unsigned long TimerInitSec = UINT_MAX;
+// Seconds remaining in this game
+unsigned long ChallengeTime = UINT_MAX;
+
+
+#ifdef CHS_DEBUG
+void printCurrentState(int nlflag)
+{
+   char *CurrentStateNames[] = {"Started","Failed","Succeeded","Notified"};
+   Serial.print("CurrentState: ");
+   Serial.print(CurrentStateNames[CurrentState]);
+   Serial.print("(");
+   Serial.print(CurrentState);
+   if(nlflag)
+      Serial.println(")");
+   else
+      Serial.print(") ");
+}
+#endif
 
 /*
  * ISR for STARTPIN low
@@ -35,6 +63,13 @@ void Start()
    StartTime=millis();
    ChallengeTime = TimerInitSec;
    CurrentState=Started;
+#ifdef CHS_DEBUG
+   printCurrentState(0);
+   Serial.print(" Started at ");
+   Serial.print(StartTime);
+   Serial.print(" ChallengeTime: ");
+   Serial.println(ChallengeTime);
+#endif   
 }
 /*
  * ISR for FAILPIN low
@@ -43,6 +78,11 @@ void Fail()
 {
    if(Started == CurrentState)
       CurrentState=Failed;
+#ifdef CHS_DEBUG
+   printCurrentState(0);
+   Serial.print(" Failed at ");
+   Serial.println(ElapseTime);
+#endif
 }
 /*
  * ISR for SUCCESSPIN low
@@ -51,13 +91,28 @@ void Success()
 {
    if(Started == CurrentState)
       CurrentState=Succeeded;
+#ifdef CHS_DEBUG
+   printCurrentState(0);
+   Serial.print(" Succeeded at ");
+   Serial.print(ElapseTime);
+   Serial.print(" ChallengeTime:");
+   Serial.println(ChallengeTime);
+#endif
 }
+
+/*
+ * Well, did I Win or Lose?  Play a tune here eventually.
+ */
 void notifyUser(State thestate)
 {
    char firstLine[16];
    memset(firstLine,0,sizeof(firstLine));
    String twostLine;
-   
+#ifdef CHS_DEBUG
+   Serial.print("notifyUser: ");
+   printCurrentState(0);
+#endif
+
    switch(thestate)
    {
       case Succeeded:
@@ -111,6 +166,7 @@ void setup()
  */
 void displayNewTime(int theTime)
 {
+   Lcd.clear();
    Lcd.setCursor(0,1);
    Lcd.write("                ");
    Lcd.setCursor(0,1);
@@ -141,8 +197,7 @@ State doTimeCountDown(int elapsed_time)
 State handleTimer(void)
 {
    State retVal = Started;
-   int elapsed_time=0;
-   ElapseTime = (millis() - StartTime)/1000;
+   int elapsed_time= (millis() - StartTime)/1000;
    
    switch(CurrentGameType)
    {
@@ -150,7 +205,7 @@ State handleTimer(void)
          retVal = doTimeCountDown(ElapseTime);
          break;
      case Tournament:
-         if(-1 == TimerInitSec)
+         if(UINT_MAX == TimerInitSec)
 	    displayNewTime(ElapseTime);
 	 else
 	    retVal=doTimeCountDown(ElapseTime);
@@ -168,23 +223,40 @@ State handleTimer(void)
  */
 void loop()
 {
-   int currentSecs=0;
+   /* BuzzWire state machine:
+    * Started -- game in progress
+    * Succeeded -- user has won
+    * Failed  -- user has lost
+    * Notified -- music has played, results are displayed, and we are ready for a new game.
+    */
+#ifdef CHS_DEBUG
+   printCurrentState(1);
+   delay(250);
+#endif
    switch(CurrentState)
    {
       case Started:
+         // Have we timed out for Challenge or Tournament yet? Else just display the time.
       	 CurrentState = handleTimer();
          break;
       case Succeeded:
+#ifdef CHS_DEBUG
+       Serial.println("Succeeded");
+#endif
          if(Tournament == CurrentGameType)
-	    ChallengeTime = ElapseTime;
+	    TimerInitSec = ElapseTime;
+	 ChallengeTime = TimerInitSec;
          notifyUser(CurrentState);
+	 ElapseTime = 0;	 
 	 CurrentState = Notified; 
          break;
       case Failed:
+	 ChallengeTime = TimerInitSec;
          notifyUser(CurrentState);
+	 ElapseTime = 0;	 
 	 CurrentState = Notified;
          break;
-      default: //Notified
+      default: //Notified -- wait for start of new game.
          break;
    }
 }

@@ -187,7 +187,7 @@ GameType chooseGameType(void)
    theGameType=displayMenu();
    if(Challenge == theGameType)
       TimerInitSec = setChallengeTime();
-
+   ChallengeTime = TimerInitSec;
    Lcd.clear();
    Lcd.write("Touch Start");
    Lcd.setCursor(0,1);

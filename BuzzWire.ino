@@ -8,7 +8,6 @@
  */
 #include <EnableInterrupt.h>
 #include <LiquidCrystal.h>
-#include <limits.h>  // UINT_MAX signal value for timers
 
 #define CHS_DEBUG
 #include "BuzzWireTypes.h"
@@ -32,12 +31,12 @@ LiquidCrystal Lcd(8,9,4,5,6,7);
 // Millis at start of game
 unsigned long StartTime = 0;
 // Millis since start of game
-unsigned long ElapseTime = 0;
+int ElapseTime = 0;
 // Seconds next game should last (always the same for Challenge,
 // time of last success for Tournament, -1 for Free)
-unsigned long TimerInitSec = UINT_MAX;
+int TimerInitSec = -1;
 // Seconds remaining in this game
-unsigned long ChallengeTime = UINT_MAX;
+int ChallengeTime = -1;
 
 
 #ifdef CHS_DEBUG
@@ -71,6 +70,8 @@ void Start()
    Serial.println(ChallengeTime);
 #endif   
 }
+
+
 /*
  * ISR for FAILPIN low
  */
@@ -84,6 +85,8 @@ void Fail()
    Serial.println(ElapseTime);
 #endif
 }
+
+
 /*
  * ISR for SUCCESSPIN low
  */
@@ -122,7 +125,14 @@ void notifyUser(State thestate)
 	 break;
       default: // Failed. Should never be any other state.
          strncpy(firstLine,"Oops. Too Bad.",sizeof(firstLine)-1);
-	 if(ElapseTime > ChallengeTime)
+#ifdef CHS_DEBUG
+   printCurrentState(0);
+   Serial.print(" ChallengeTime: ");
+   Serial.print(ChallengeTime);
+   Serial.print(" ElapseTime:");
+   Serial.print(ElapseTime);
+#endif
+	 if(ElapseTime == ChallengeTime)
 	    twostLine = "Too Slow!";
 	 else
 	    twostLine = "Touched Wire!";
@@ -151,6 +161,7 @@ void setup()
    enableInterrupt(STARTPIN,Start,FALLING);
    enableInterrupt(FAILPIN,Fail,FALLING);
    enableInterrupt(SUCCESSPIN,Success,FALLING);
+   
    CurrentGameType=chooseGameType();
    #ifdef CHS_DEBUG
    Serial.print("CurrentGameType: ");
@@ -183,39 +194,47 @@ State doTimeCountDown(int elapsed_time)
    if(ElapseTime < elapsed_time) {
       ++ElapseTime;
       --ChallengeTime;
+      if(ChallengeTime <= 0)
+         retVal=Failed;
+      else
+         displayNewTime(ChallengeTime);
    }
-   if(ChallengeTime < 1)
-      retVal=Failed;
-   else
-      displayNewTime(ChallengeTime);
-      
    return retVal;
 }
+
 /*
  *  Do timer.  Decrement for Tournament or Challenge mode, display for timed mode.
  */
 State handleTimer(void)
 {
    State retVal = Started;
-   int elapsed_time= (millis() - StartTime)/1000;
    
-   switch(CurrentGameType)
-   {
-      case Challenge:
-         retVal = doTimeCountDown(ElapseTime);
-         break;
-     case Tournament:
-         if(UINT_MAX == TimerInitSec)
-	    displayNewTime(ElapseTime);
-	 else
-	    retVal=doTimeCountDown(ElapseTime);
-      default: // Free
-	 if(ElapseTime < elapsed_time) {
-	    ++ElapseTime;
-	    displayNewTime(ElapseTime);
-	 }
-         break;
+   if(Started == CurrentState) {   
+      int elapsed_time= (int)((millis() - StartTime)/1000);
+
+      switch(CurrentGameType)
+      {
+         case Challenge:
+           retVal = doTimeCountDown(elapsed_time);
+           break;
+        case Tournament:
+           if(-1 == TimerInitSec) {
+	      if(ElapseTime < elapsed_time)
+	         ++ElapseTime;
+	      displayNewTime(ElapseTime);
+	   }
+	  else
+	     retVal=doTimeCountDown(elapsed_time);
+         default: // Free
+	    if(ElapseTime < elapsed_time) {
+	       ++ElapseTime;
+	       displayNewTime(ElapseTime);
+	    }
+            break;
+      }
    }
+   else
+      retVal = CurrentState;
    return retVal;
 }
 /*
@@ -229,10 +248,7 @@ void loop()
     * Failed  -- user has lost
     * Notified -- music has played, results are displayed, and we are ready for a new game.
     */
-#ifdef CHS_DEBUG
-   printCurrentState(1);
-   delay(250);
-#endif
+   delay(250); // Delay a bit before checking current state to allow interrupt to catch up.
    switch(CurrentState)
    {
       case Started:

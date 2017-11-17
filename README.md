@@ -21,7 +21,7 @@ Tournament mode, the timer counts up for the first run, but in
 subsequent runs the timer is set to the time you took on the last run,
 which you must beat in order to win the game.
 
-Press the <down> button on the initial display, then use
+Press the &lt;down&gt; button on the initial display, then use
 Up/Down/Select to choose the game you prefer.  All games start when
 you touch the wire loop to the start pin and end when you touch the
 wire loop to the finish pin.

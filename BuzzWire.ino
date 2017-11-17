@@ -37,7 +37,8 @@ int ElapseTime = 0;
 int TimerInitSec = -1;
 // Seconds remaining in this game
 int ChallengeTime = -1;
-
+// Has the time expired yet?
+boolean TimerExpired=false;
 
 #ifdef CHS_DEBUG
 void printCurrentState(int nlflag)
@@ -111,6 +112,7 @@ void notifyUser(State thestate)
    char firstLine[16];
    memset(firstLine,0,sizeof(firstLine));
    String twostLine;
+   
 #ifdef CHS_DEBUG
    Serial.print("notifyUser: ");
    printCurrentState(0);
@@ -132,7 +134,7 @@ void notifyUser(State thestate)
    Serial.print(" ElapseTime:");
    Serial.print(ElapseTime);
 #endif
-	 if(ElapseTime == ChallengeTime)
+	 if(TimerExpired)
 	    twostLine = "Too Slow!";
 	 else
 	    twostLine = "Touched Wire!";
@@ -175,9 +177,11 @@ void setup()
 /*
  *  Display time or time left on LCD
  */
-void displayNewTime(int theTime)
+void displayNewTime(int theTime,char *firstLine)
 {
    Lcd.clear();
+   Lcd.setCursor(0,0);
+   Lcd.write(firstLine);
    Lcd.setCursor(0,1);
    Lcd.write("                ");
    Lcd.setCursor(0,1);
@@ -187,17 +191,17 @@ void displayNewTime(int theTime)
 /*
  * Count time down in challenge or tournament mode
  */
-State doTimeCountDown(int elapsed_time)
+boolean doTimeCountDown(int elapsed_time)
 {
-   State retVal=Started;
+   boolean retVal=false;
 
    if(ElapseTime < elapsed_time) {
       ++ElapseTime;
       --ChallengeTime;
       if(ChallengeTime <= 0)
-         retVal=Failed;
+         retVal=true;
       else
-         displayNewTime(ChallengeTime);
+         displayNewTime(ChallengeTime,"Time Left.Hurry!");
    }
    return retVal;
 }
@@ -205,38 +209,37 @@ State doTimeCountDown(int elapsed_time)
 /*
  *  Do timer.  Decrement for Tournament or Challenge mode, display for timed mode.
  */
-State handleTimer(void)
+boolean handleTimer(void)
 {
-   State retVal = Started;
+   boolean retVal = false;
    
-   if(Started == CurrentState) {   
-      int elapsed_time= (int)((millis() - StartTime)/1000);
 
-      switch(CurrentGameType)
-      {
-         case Challenge:
-           retVal = doTimeCountDown(elapsed_time);
-           break;
-        case Tournament:
-           if(-1 == TimerInitSec) {
-	      if(ElapseTime < elapsed_time)
+   int elapsed_time= (int)((millis() - StartTime)/1000);
+   
+   switch(CurrentGameType)
+   {
+      case Challenge:
+        retVal = doTimeCountDown(elapsed_time);
+        break;
+     case Tournament:
+        if(-1 == TimerInitSec) {
+	      if(ElapseTime < elapsed_time) {
 	         ++ElapseTime;
-	      displayNewTime(ElapseTime);
+	         displayNewTime(ElapseTime,"Time to Beat!");
+              }
 	   }
 	  else
 	     retVal=doTimeCountDown(elapsed_time);
-         default: // Free
+      default: // Free
 	    if(ElapseTime < elapsed_time) {
 	       ++ElapseTime;
-	       displayNewTime(ElapseTime);
+	       displayNewTime(ElapseTime,"Time So Far");
 	    }
-            break;
-      }
+         break;
    }
-   else
-      retVal = CurrentState;
    return retVal;
 }
+
 /*
  * Main Line Loop
  */
@@ -248,12 +251,13 @@ void loop()
     * Failed  -- user has lost
     * Notified -- music has played, results are displayed, and we are ready for a new game.
     */
-   delay(250); // Delay a bit before checking current state to allow interrupt to catch up.
+   if((Started == CurrentState) && (TimerExpired))
+      CurrentState = Failed;
    switch(CurrentState)
    {
       case Started:
          // Have we timed out for Challenge or Tournament yet? Else just display the time.
-      	 CurrentState = handleTimer();
+      	 TimerExpired = handleTimer();
          break;
       case Succeeded:
 #ifdef CHS_DEBUG
@@ -263,12 +267,14 @@ void loop()
 	    TimerInitSec = ElapseTime;
 	 ChallengeTime = TimerInitSec;
          notifyUser(CurrentState);
+	 TimerExpired=false;
 	 ElapseTime = 0;	 
 	 CurrentState = Notified; 
          break;
       case Failed:
 	 ChallengeTime = TimerInitSec;
          notifyUser(CurrentState);
+	 TimerExpired=false;
 	 ElapseTime = 0;	 
 	 CurrentState = Notified;
          break;

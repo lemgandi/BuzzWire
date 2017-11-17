@@ -98,13 +98,13 @@ int incDecButton(void)
  */
 int setChallengeTime(void)
 {
-   int retVal = 0;
-   int addAmt = 0;
+   int retVal = 19;
+   int addAmt = 1;
    
    Lcd.clear();
    Lcd.print("Set Time (r/l)");
 
-   while((0 == retVal) || (addAmt))
+   while (addAmt)
    {
       retVal += addAmt;      
       Lcd.setCursor(0,1);
@@ -187,6 +187,8 @@ GameType chooseGameType(void)
    theGameType=displayMenu();
    if(Challenge == theGameType)
       TimerInitSec = setChallengeTime();
+   else
+      TimerInitSec = -1;
    ChallengeTime = TimerInitSec;
    Lcd.clear();
    Lcd.write("Touch Start");

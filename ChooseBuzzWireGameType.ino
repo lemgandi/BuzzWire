@@ -2,7 +2,24 @@
  * Display a gametype menu on the lcd screen,then select a game type from it.
  * Called from setup().
  * Copyright (c) Charles Shapiro November 2017
+
+This file is part of BuzzWire.
+
+    BuzzWire is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    BuzzWire is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with BuzzWire.  If not, see <http://www.gnu.org/licenses/>.
+
  */
+ 
 #include <LiquidCrystal.h>
 
 #include "BuzzWireTypes.h"
@@ -21,7 +38,7 @@ menuOption Options[] =
    {"Tournament","Timer=last run",Tournament}
 };
 
-#define OPTION_LEN sizeof(Options)/sizeof(menuOption)
+#define OPTION_LEN (sizeof(Options)/sizeof(menuOption))
 
 
 #ifdef CHS_DEBUG
@@ -181,7 +198,7 @@ GameType chooseGameType(void)
    Lcd.print("Choose Game Type");
    Lcd.setCursor(0,1);
    Lcd.print("(up/down/select)");
-   while(buttonPressed != Down) {
+   while((buttonPressed != Down) && (buttonPressed != Up)) {
      buttonPressed=readButton();
    }
    theGameType=displayMenu();

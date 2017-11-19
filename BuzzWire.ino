@@ -5,13 +5,47 @@
  * Tournament Mode:  Timer is set to elapsed time of last successful run.
  *
  * Copyright (c) Charles Shapiro, November 2017
+
+    This file is part of BuzzWire.
+
+    BuzzWire is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    BuzzWire is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with BuzzWire.  If not, see <http://www.gnu.org/licenses/>.
+
  */
 #include <EnableInterrupt.h>
 #include <LiquidCrystal.h>
 
-#define CHS_DEBUG
+/*
+Define SILENT to make this game silent.  Otherwise, use the MusicBox library
+( http://github.com/lemgandi/MusicBox ) for the tunes.
+*/
+
+// #define SILENT     
+
+#ifdef SILENT
+#pragma message ("SILENT defined. This game will not sing.")
+#endif
+
+/*
+ * Define CHS_DEBUG to log various things to Serial
+ */
+// #define CHS_DEBUG 
 #include "BuzzWireTypes.h"
 #include "Prototypes.h"
+#ifndef SILENT
+#include "BuzzWireTunes.h"
+#include <MusicBox.h>
+#endif
 
 #define STARTPIN 16
 #define FAILPIN 17
@@ -24,9 +58,13 @@ GameType CurrentGameType=NullGame;
 // Our State Machine s State
 State CurrentState=Notified;
 
-
 LiquidCrystal Lcd(8,9,4,5,6,7);
 
+#ifndef SILENT
+#define MUSIC_PIN 15
+
+MusicBox MusicPlayer(MUSIC_PIN);
+#endif
 
 // Millis at start of game
 unsigned long StartTime = 0;
@@ -39,6 +77,9 @@ int TimerInitSec = -1;
 int ChallengeTime = -1;
 // Has the time expired yet?
 boolean TimerExpired=false;
+
+
+
 
 #ifdef CHS_DEBUG
 void printCurrentState(int nlflag)
@@ -63,6 +104,7 @@ void Start()
    StartTime=millis();
    ChallengeTime = TimerInitSec;
    CurrentState=Started;
+
 #ifdef CHS_DEBUG
    printCurrentState(0);
    Serial.print(" Started at ");
@@ -110,7 +152,6 @@ void Success()
 void notifyUser(State thestate)
 {
    char firstLine[16];
-   memset(firstLine,0,sizeof(firstLine));
    String twostLine;
    
 #ifdef CHS_DEBUG
@@ -118,15 +159,16 @@ void notifyUser(State thestate)
    printCurrentState(0);
 #endif
 
-   switch(thestate)
-   {
-      case Succeeded:
-         strncpy(firstLine,"Hurray for You!",sizeof(firstLine)-1);
-	 twostLine="Success in ";
-	 twostLine.concat(String(ElapseTime));
-	 break;
-      default: // Failed. Should never be any other state.
-         strncpy(firstLine,"Oops. Too Bad.",sizeof(firstLine)-1);
+   memset(firstLine,0,sizeof(firstLine));
+ 
+   if(Succeeded == thestate) {
+      strncpy(firstLine,"Hurray for You!",sizeof(firstLine)-1);
+      twostLine="Success in ";
+      twostLine.concat(String(ElapseTime));
+      twostLine.concat(" sec");
+   }
+   else {  //Failed. Should never be any other state
+      strncpy(firstLine,"Oops. Too Bad.",sizeof(firstLine)-1);
 #ifdef CHS_DEBUG
    printCurrentState(0);
    Serial.print(" ChallengeTime: ");
@@ -134,45 +176,23 @@ void notifyUser(State thestate)
    Serial.print(" ElapseTime:");
    Serial.print(ElapseTime);
 #endif
-	 if(TimerExpired)
-	    twostLine = "Too Slow!";
-	 else
-	    twostLine = "Touched Wire!";
-         break;
+      if(TimerExpired)
+         twostLine = "Too Slow!";
+      else
+	 twostLine = "Touched Wire!";         
    }
    Lcd.clear();
    Lcd.write(firstLine);
    Lcd.setCursor(0,1);
    Lcd.write(twostLine.c_str());
+#ifndef SILENT   
+   if(Succeeded == thestate)
+      MusicPlayer.playATune(SUCCESSSONG);
+   else
+      MusicPlayer.playATune(FAILSONG);
+#endif      
 }
 
-/*
- * Main Line Setup
- */
-void setup()
-{
-#ifdef CHS_DEBUG
-   Serial.begin(9600);
-#endif
-   Lcd.begin(16,2);
-   
-   pinMode(STARTPIN,INPUT_PULLUP);
-   pinMode(FAILPIN,INPUT_PULLUP);
-   pinMode(SUCCESSPIN,INPUT_PULLUP);
-   
-   enableInterrupt(STARTPIN,Start,FALLING);
-   enableInterrupt(FAILPIN,Fail,FALLING);
-   enableInterrupt(SUCCESSPIN,Success,FALLING);
-   
-   CurrentGameType=chooseGameType();
-   #ifdef CHS_DEBUG
-   Serial.print("CurrentGameType: ");
-   Serial.print(CurrentGameType);
-   Serial.print(" TimerInitSec: ");
-   Serial.println(TimerInitSec);
-#endif
-
-}
 
 /*
  *  Display time or time left on LCD
@@ -238,6 +258,43 @@ boolean handleTimer(void)
          break;
    }
    return retVal;
+}
+
+
+
+/***********************************************************************************************/
+/*
+ * Main Line Setup
+ */
+void setup()
+{
+#ifdef CHS_DEBUG
+   Serial.begin(9600);
+#endif
+   Lcd.begin(16,2);
+   
+   pinMode(STARTPIN,INPUT_PULLUP);
+   pinMode(FAILPIN,INPUT_PULLUP);
+   pinMode(SUCCESSPIN,INPUT_PULLUP);
+   
+   enableInterrupt(STARTPIN,Start,FALLING);
+   enableInterrupt(FAILPIN,Fail,FALLING);
+   enableInterrupt(SUCCESSPIN,Success,FALLING);
+   
+   CurrentGameType=chooseGameType();
+   #ifdef CHS_DEBUG
+   Serial.print("CurrentGameType: ");
+   Serial.print(CurrentGameType);
+   Serial.print(" TimerInitSec: ");
+   Serial.println(TimerInitSec);
+#endif
+#ifndef SILENT
+   MusicPlayer.loadATune(StartSong,STARTSONG);
+   MusicPlayer.loadATune(FailSong,FAILSONG);
+   MusicPlayer.loadATune(SuccessSong,SUCCESSSONG);
+   MusicPlayer.playATune(STARTSONG);
+#endif
+
 }
 
 /*

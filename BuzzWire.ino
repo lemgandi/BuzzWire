@@ -163,7 +163,7 @@ void notifyUser(State thestate)
  
    if(Succeeded == thestate) {
       strncpy(firstLine,"Hurray for You!",sizeof(firstLine)-1);
-      twostLine="Success in ";
+      twostLine="Success ";
       twostLine.concat(String(ElapseTime));
       twostLine.concat(" sec");
    }

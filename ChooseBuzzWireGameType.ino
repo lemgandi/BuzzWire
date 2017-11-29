@@ -24,6 +24,7 @@ This file is part of BuzzWire.
 
 #include "BuzzWireTypes.h"
 #include "Prototypes.h"
+#include "buttonValues.h"
 
 typedef struct menuOption {
    char firstLine[16];
@@ -54,6 +55,7 @@ void print_button_type(Button thebutton,int line)
       Serial.print(buttonTypes[thebutton]);
 }
 #endif
+
 /*
  * Read a button from the VMA203
  */
@@ -62,21 +64,21 @@ Button readButton()
    Button theButton=NullButton;
    int keyValue=analogRead(0);
 
-   while(keyValue < 900)  // Do not read value on a button already pressed.
+   while(keyValue < SELECTBUTTONMAX)  // Do not read value on a button already pressed.
       keyValue=analogRead(0);
       
    while(theButton == NullButton) {
       keyValue=analogRead(0);
  
-      if(keyValue < 64)
+      if(keyValue < RIGHTBUTTONMAX)
          theButton=Right;
-      else if (keyValue < 128)
+      else if (keyValue < UPBUTTONMAX)
          theButton=Up;
-      else if (keyValue < 300)
+      else if (keyValue < DOWNBUTTONMAX)
          theButton=Down;
-      else if (keyValue < 500)
+      else if (keyValue < LEFTBUTTONMAX)
          theButton=Left;
-      else if (keyValue < 900)
+      else if (keyValue < SELECTBUTTONMAX)
          theButton = Select;
    }
    
@@ -91,21 +93,27 @@ int incDecButton(void)
 {
    int retVal=0;
    Button buttonPressed=NullButton;
+
+   while(NullButton == buttonPressed) {
    
-   while((buttonPressed != Right) && (buttonPressed != Left) && (buttonPressed != Select))
-      buttonPressed=readButton();
+   buttonPressed=readButton();
       
    switch(buttonPressed)
    {
+      case Up:
       case Right:
-         retVal =1;
-	 break;
+         retVal = 1;
+         break;
+      case Down:
       case Left:
          retVal = -1;
 	 break;
-      default:   // Select
-         retVal=0;
+      case Select:
+         retVal = 0;
 	 break;
+      default:   // NullButton
+	 break;
+      }
    }
    return retVal;
 }
@@ -128,8 +136,8 @@ int setChallengeTime(void)
       Lcd.write("                ");
       Lcd.setCursor(0,1);
       Lcd.write(String(retVal).c_str());
-      if(retVal < 0)
-         retVal = 0;
+      if(! retVal)
+         retVal = 20;
       addAmt = incDecButton();
    }
 
@@ -155,16 +163,23 @@ GameType displayMenu()
 #ifdef CHS_DEBUG
 Serial.println("Bink");
 #endif
-      while((currentButton != Up) && (currentButton != Down) && (currentButton != Select)) {
+/*
+      while((currentButton != Select) && (currentButton != Up) && (curentButton != Down)) {
          currentButton=NullButton;
          currentButton=readButton();
       }
+*/
+      while(NullButton == currentButton)
+         currentButton = readButton();
+	 
       switch(currentButton) {
+         case Left:
          case Up:
    	    --currentDisplayedChoice;
    	    if(currentDisplayedChoice < Options)
    	       currentDisplayedChoice = &Options[OPTION_LEN-1];
 	    break;
+	 case Right:
 	 case Down:
 	    ++currentDisplayedChoice;
 	    if(currentDisplayedChoice > &Options[OPTION_LEN-1])
@@ -198,7 +213,8 @@ GameType chooseGameType(void)
    Lcd.print("Choose Game Type");
    Lcd.setCursor(0,1);
    Lcd.print("(up/down/select)");
-   while((buttonPressed != Down) && (buttonPressed != Up)) {
+   
+   while(NullButton == buttonPressed) {
      buttonPressed=readButton();
    }
    theGameType=displayMenu();

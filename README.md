@@ -1,40 +1,47 @@
-Buzzwire Timed
-===
+# Buzzwire Timed
 
 This is an Arduino version of the old chestnut Buzz Wire game. Players
 must navigate a loop of wire over a larger wire loop without touching
-the two together.  This version uses the Velleman VMA203 LCD/button
-shield to make the game a tad more Interesting.  The VMA203 is
-available at retail electronics stores (Fry's and Micro Center) and
-also on line for about $10.  It features an LCD with 2 lines of 16
-characters each and six push buttons. Five of them are helpfully
-labeled (Up/Down,Right/Left, and Select). The sixth is labeled "Rst"
-and is tied to the reset pin of the Arduino beneath the shield.  For
-about $20, you can be the proud owner of a tiny computer, complete
-with display and control buttons.
+the two together.
+
+This code uses an Arduino LCD/button shield to make the game a tad
+more Interesting.  These popular devices are often available at retail
+electronics stores (Fry's and Micro Center both carry them) and on line for
+between $10 and $20.  Velleman makes one (VMA203) as does OSEPP
+(16x2SHD-01) and Sparkfun (DEV-13293).  I've tested this code on the
+Velleman and the OSEPP shields, but I haven't obtained a Sparkfun
+shield. Adafruit makes a shield which may be similar, but from their
+description it may not work with this code. It's also significantly
+more expensive than the other three. All of these shields feature an
+LCD with 2 lines of 16 characters each and six push buttons. Five of
+them are helpfully labeled (Up/Down,Right/Left, and Select). The sixth
+is labeled "Rst" and is tied to the reset pin of the Arduino beneath
+the shield.  For less than $30, you can be the proud owner of a tiny
+computer, complete with a display, control buttons, and 11 I/O lines.
 
 This BuzzWire game has three modes: Timed, Challenge, and Tournament.
-- Timed mode: the timer simply counts up by seconds as you navigate
-the game. 
-- Challenge mode: you set a time and the timer counts
-down; you must reach the end of the game before it hits 0.  
-- Tournament mode: the timer counts up for the first run, but in
-subsequent runs the timer is set to the time you took on the last run,
-which you must beat in order to win the game. 
+- Timed mode
+  - The timer counts up by seconds as you navigate the game.
+- Challenge mode
+  - You set a time and the timer counts down; you must finish your run before it hits 0.  
+- Tournament mode
+  - The timer counts up for the first run, but in subsequent runs the timer counts down from the
+    time you took for the last run.
 
-Select the mode with the
-up/down buttons on the VMA203. To change modes, hit the &lt;reset&gt;
-button.
 
-Press the &lt;down&gt; button on the initial display, then use
-Up/Down/Select to choose the game you prefer.  All games start when
-you touch the wire loop to the start pin and end when you touch the
-wire loop to the finish pin.
+Select the mode with the Up/Down/Left/Right/Select buttons on the
+VMA203. To change modes, hit the &lt;reset&gt; button. Use
+Up/Down/Left/Right/Select to change the time value in Challenge mode.
+All games start when you touch the wire loop to the start pin. Win when you
+touch the wire loop to the finish pin within the time limit. Lose
+by running out of time or by touching the wire loop to the big wire
+loop.
 
-# Pins Used
+## Pins Used
 
-The VMA203 uses most of the Digital pins on the Arduino, as well as the first Analog pin (pin 15, AKA A0)  
-BuzzWire itself uses the following pins:
+These shields use most of the Digital pins on the Arduino, as well as
+the first Analog pin (pin 15, AKA A0) BuzzWire itself uses the
+following pins:
 
 - Pin 16 ( A2) 
   - Connects to a nail at the start of the big loop. Touch this with the wand to start or restart the game. 
@@ -45,7 +52,7 @@ BuzzWire itself uses the following pins:
 - Ground
   - Connected to the wand (small wire loop) 
 
-If ```SILENT``` is not defined, BuzzWire also uses pin 15 (A1) as a speaker out pin; the other speaker wire 
-should be connected to ground.
+If ```SILENT``` is not defined, BuzzWire also uses pin 15 (A1) as a
+speaker out pin; the other speaker wire should be connected to ground.
 
 

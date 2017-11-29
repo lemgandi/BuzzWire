@@ -39,8 +39,8 @@ loop.
 
 ## Pins Used
 
-These shields use most of the Digital pins on the Arduino, as well as
-the first Analog pin (pin 15, AKA A0) BuzzWire itself uses the
+These shields use many of the Digital pins on the Arduino, as well as
+the first Analog pin (pin 14, AKA A0) BuzzWire itself uses the
 following pins:
 
 - Pin 16 ( A2) 

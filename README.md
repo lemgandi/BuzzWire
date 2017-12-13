@@ -37,7 +37,13 @@ touch the wire loop to the finish pin within the time limit. Lose
 by running out of time or by touching the wire loop to the big wire
 loop.
 
-## Pins Used
+## Libraries
+
+By default, BuzzWire uses my [MusicBox library](http://github.com/lemgandi/MusicBox).  You can disable this 
+with ```#define SILENT``` in the BuzzWire.ino file.  It also uses [GreyGnome's excellent interrupt library](http://github.com/GreyGnome/EnableInterrupt).
+
+
+Pins
 
 These shields use many of the Digital pins on the Arduino, as well as
 the first Analog pin (pin 14, AKA A0) BuzzWire itself uses the

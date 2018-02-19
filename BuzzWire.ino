@@ -78,12 +78,8 @@ int ChallengeTime = -1;
 // Has the time expired yet?
 boolean TimerExpired=false;
 // Has start song been played on start?
-#ifndef SILENT
-boolean StartSongPlayed = false;
-#endif
 
-
-
+boolean Restarted = false;
 
 #ifdef CHS_DEBUG
 void printCurrentState(int nlflag)
@@ -108,9 +104,8 @@ void Start()
    StartTime=millis();
    ChallengeTime = TimerInitSec;
    CurrentState=Started;
-#ifndef SILENT
-   StartSongPlayed = 0;
-#endif
+   Restarted = true;
+
 
 #ifdef CHS_DEBUG
    printCurrentState(0);
@@ -192,12 +187,12 @@ void notifyUser(State thestate)
    Lcd.write(firstLine);
    Lcd.setCursor(0,1);
    Lcd.write(twostLine.c_str());
+   Restarted = false;
 #ifndef SILENT   
    if(Succeeded == thestate)
       MusicPlayer.playATune(SUCCESSSONG);
    else
-      MusicPlayer.playATune(FAILSONG);
-   StartSongPlayed = false;
+      MusicPlayer.playATune(FAILSONG);   
 #endif      
 }
 
@@ -320,12 +315,15 @@ void loop()
    switch(CurrentState)
    {
       case Started:
+
+	 if(Restarted) {
+      	    ElapseTime = 0;
 #ifndef SILENT
-	 if(! StartSongPlayed) {
 	    MusicPlayer.playATune(STARTSONG);
-	    StartSongPlayed=true;
-	 }
 #endif
+	    Restarted=false;
+	 }
+
          // Have we timed out for Challenge or Tournament yet? Else just display the time.
       	 TimerExpired = handleTimer();
          break;
